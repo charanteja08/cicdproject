@@ -1,0 +1,73 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'React-FMS-main/**' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'React-FMS-main/**' ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: React-FMS-main/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd React-FMS-main
+        npm ci
+    
+    - name: Run tests
+      run: |
+        cd React-FMS-main
+        npm test -- --coverage --watchAll=false
+    
+    - name: Build React app
+      run: |
+        cd React-FMS-main
+        npm run build
+      env:
+        REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-build
+        path: React-FMS-main/build/
+
+  deploy-to-netlify:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: frontend-build
+        path: React-FMS-main/build/
+    
+    - name: Deploy to Netlify
+      uses: nwtgck/actions-netlify@v2.0
+      with:
+        publish-dir: './React-FMS-main/build'
+        production-branch: main
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        deploy-message: "Deploy from GitHub Actions"
+        enable-pull-request-comment: false
+        enable-commit-comment: true
+        overwrites-pull-request-comment: true
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+

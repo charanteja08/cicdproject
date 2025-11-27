@@ -1,0 +1,16 @@
+# Docker ignore file for backend
+target/
+*.jar
+*.war
+*.ear
+*.class
+*.log
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+node_modules/
+npm-debug.log
+.DS_Store
+Thumbs.db
